@@ -1,4 +1,3 @@
-import json
 import sqlite3
 import uuid
 import io
@@ -16,7 +15,6 @@ def get_db():
     db = getattr(g, '_database', None)
     if db is None:
         db = g._database = sqlite3.connect(DATABASE)
-    #db.row_factory = sqlite3.Row
     db.row_factory = lambda c, r: dict(zip([col[0] for col in c.description], r))
     return db
 
@@ -146,15 +144,17 @@ def loginEstudiante():
         if rv is None:
             return Response("Usuario no registrado", status=403, mimetype='application/json')
         if check_password_hash(rv['clave'], clave):
-            return jsonify({
-                'nombre': rv["nombre"],
-                'apellido': rv["apellido"],
-                'pin': rv["pin"],
-                'activo': rv["activo"],
-                'colegio': rv["colegio"],
-                'curso': rv["curso"],
-                'grado': rv["grado"],
-            })
+            if rv["activo"] == 1:
+                return jsonify({
+                    'nombre': rv["nombre"],
+                    'apellido': rv["apellido"],
+                    'pin': rv["pin"],
+                    'activo': rv["activo"],
+                    'colegio': rv["colegio"],
+                    'curso': rv["curso"],
+                    'grado': rv["grado"],
+                })
+            return Response("Usuario inactivo", status=403, mimetype='application/json')
         return Response("Usuario o contraseña incorrectas", status=403, mimetype='application/json')
     except:
         db.rollback()
@@ -172,6 +172,7 @@ def listado_estudiantes():
     cur = cur.fetchall()
     return jsonify(cur)
 
+
 @app.route('/usuario/active', methods=['PUT'])
 def usuario_active():
     db = get_db()
@@ -182,10 +183,10 @@ def usuario_active():
             [content['activo'], content['id']]
         )
         db.commit()
-        return Response("Actualizacion realizada", status=403, mimetype='application/json')
+        return Response("Actualizacion realizada", status=200, mimetype='application/json')
     except:
         db.rollback()
-        return Response("Error de Login", status=500, mimetype='application/json')
+        return Response("Error de Actualizacion", status=500, mimetype='application/json')
 
 
 @app.route('/colegio/listado', methods=['POST'])
